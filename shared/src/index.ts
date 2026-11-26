@@ -149,3 +149,31 @@ export interface ApiError {
   error: string;
   message: string;
 }
+
+/** GET /api/portfolio 的單一持倉（一個帳戶 × 一檔標的）。 */
+export interface PortfolioPosition {
+  account_id: number;
+  account_name: string;
+  instrument: Pick<Instrument, 'id' | 'type' | 'symbol' | 'name' | 'currency' | 'share_class'>;
+  state: import('./portfolio').PositionState | null;
+  valuation: import('./portfolio').Valuation | null;
+  price: { close: DecimalString; date: DateString } | null;
+  fx: { rate: DecimalString; date: DateString } | null;
+  /** 計算錯誤（資料不一致，例如賣超過持有） */
+  error?: string;
+}
+
+export interface PortfolioResponse {
+  user_id: number;
+  positions: PortfolioPosition[];
+  summary: import('./portfolio').PortfolioSummary;
+}
+
+export interface FamilyPortfolioResponse {
+  users: { user: Pick<User, 'id' | 'display_name' | 'role'>; summary: import('./portfolio').PortfolioSummary }[];
+  summary: import('./portfolio').PortfolioSummary;
+}
+
+export * from './decimal';
+export * from './fees';
+export * from './portfolio';

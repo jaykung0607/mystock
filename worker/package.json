@@ -14,9 +14,11 @@
     "db:seed:local": "wrangler d1 execute mystock --local --file=scripts/seed.dev.sql"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.9.1",
     "@mystock/shared": "*",
     "hono": "^4.13.22",
-    "jose": "^6.2.18"
+    "jose": "^6.2.18",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.9.2",
