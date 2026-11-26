@@ -13,6 +13,7 @@ import {
   type TxDraft,
   type TxValues,
 } from '../services/transactions';
+import { invalidateSnapshots } from '../services/snapshots';
 
 const app = new Hono<AppEnv>();
 
@@ -73,7 +74,10 @@ app.get('/:id', async (c) => {
 app.post('/', requireAdmin, validate('json', transactionCreate), async (c) => {
   const body = c.req.valid('json');
   const db = c.env.DB;
-  const account = await db.prepare('SELECT id FROM accounts WHERE id = ?1').bind(body.account_id).first();
+  const account = await db
+    .prepare('SELECT id, user_id FROM accounts WHERE id = ?1')
+    .bind(body.account_id)
+    .first<{ id: number; user_id: number }>();
   if (!account) badRequest('帳戶不存在');
   const instrument = await getInstrument(db, body.instrument_id);
 
@@ -113,6 +117,7 @@ app.post('/', requireAdmin, validate('json', transactionCreate), async (c) => {
       c.var.user.id,
     )
     .first<Transaction>();
+  await invalidateSnapshots(db, values.trade_date, account.user_id);
   return c.json({ transaction: row }, 201);
 });
 
@@ -179,6 +184,11 @@ app.patch('/:id', requireAdmin, validate('json', transactionUpdate), async (c) =
       values.status,
     )
     .first<Transaction>();
+  await invalidateSnapshots(
+    db,
+    values.trade_date < current.trade_date ? values.trade_date : current.trade_date,
+    current.user_id,
+  );
   return c.json({ transaction: row });
 });
 
@@ -191,6 +201,7 @@ app.delete('/:id', requireAdmin, async (c) => {
   );
   assertPositionValid(others);
   await db.prepare('DELETE FROM transactions WHERE id = ?1').bind(id).run();
+  await invalidateSnapshots(db, current.trade_date, current.user_id);
   return c.body(null, 204);
 });
 

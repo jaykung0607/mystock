@@ -83,8 +83,14 @@ Worker 測試跑在真正的 Workers runtime（`@cloudflare/vitest-plugin`），
 | GET | `/api/transactions?user_id=&account_id=&instrument_id=&status=&from=&to=` | 自己／admin | 新到舊 |
 | GET | `/api/transactions/:id` | 自己／admin | |
 | POST / PATCH / DELETE | `/api/transactions[/:id]` | admin | 見下方規則 |
-| GET | `/api/portfolio?user_id=` | 自己／admin | 個人帳本：各持倉＋彙總 |
-| GET | `/api/portfolio/family` | admin | 全家合計 |
+| GET | `/api/portfolio?user_id=&live=1` | 自己／admin | 個人帳本：各持倉＋彙總；`live=1` 盤中用延遲報價 |
+| GET | `/api/portfolio/family?live=1` | admin | 全家合計 |
+| GET | `/api/portfolio/history?user_id=&from=&to=` | 自己／admin | 資產走勢（每日快照）；admin 省略 user_id＝全家 |
+| GET | `/api/prices/:instrumentId?from=&to=` | 登入者 | 收盤價／淨值歷史 |
+| PUT / DELETE | `/api/prices/:instrumentId/:date` | admin | 手動輸入淨值或收盤價 `{ "close": "12.34" }` |
+| GET | `/api/fx/:currency?from=&to=` | 登入者 | 匯率歷史 |
+| PUT | `/api/fx/:currency/:date` | admin | 手動輸入匯率 `{ "rate": "32.1" }` |
+| POST | `/api/jobs/daily` | admin | 立即執行每日排程，回傳報告（第一次設定後回補、檢查資料源） |
 
 ### 交易規則
 
@@ -100,6 +106,27 @@ Worker 測試跑在真正的 Workers runtime（`@cloudflare/vitest-plugin`），
 - **手續費／證交稅**：台股買賣沒填（或填 `"auto"`）時依 settings 估算（無條件捨去、最低 20 元、ETF 證交稅 0.1%）。
 - 任何新增／修改／刪除如果會讓某個時間點賣超過持有，回 400 且不寫入。
 - `PATCH` 不能改 `account_id`／`instrument_id`（刪除重建）。改交易日但沒給匯率時會依新日期重抓匯率。
+
+### 報價與排程（`worker/src/jobs/daily.ts`、`worker/src/sources/`）
+
+標的的 `data_source`（建立時省略則依類型預設）：
+
+| data_source | 用於 | 來源 | 狀態 |
+|---|---|---|---|
+| `tw` | 台股上市櫃、ETF（預設） | TPEx 上櫃 + TWSE 上市「每日收盤行情」依日期查詢 | ✅ 已實測 |
+| `yahoo` | 美股（預設） | Yahoo Finance chart（非官方），可回補歷史 | ⚠ 待驗證（開發環境被限流 429） |
+| `finnhub` | 美股 | Finnhub quote，需 `FINNHUB_API_KEY`；免費方案無歷史 | ⚠ 待驗證（需 API key） |
+| `manual` | 基金（預設） | admin 用 `PUT /api/prices/...` 手動輸入淨值 | — |
+| 匯率 | | 台銀牌告即期賣出 CSV | ⚠ 待驗證（開發環境收到機器人驗證頁） |
+| 盤中 | 台股 | TWSE 基本市況報導 `mis.twse.com.tw`（非官方） | ⚠ 待驗證（開發環境被擋） |
+
+- 排程時間見 `worker/wrangler.jsonc` 的 `triggers.crons`；每次執行都會檢查缺什麼就補什麼，可重跑。
+- 台股依日期新到舊回補（最多 800 天），每次最多 10 天、每天間隔 2.5 秒（TWSE 太密集會封鎖）；休市日記在 `fetch_log` 不再重抓。
+- 手動輸入的價格與匯率（`source='manual'`）不會被排程覆寫。
+- 收盤價超過 3 個交易日沒更新的持倉標 `price_stale`（UI 顯示「資料過期」）。
+- 盤中報價只在交易時段抓（台股 09:00–13:35、美股美東 09:30–16:00），Cache API 快取 5 分鐘，不寫 D1；失敗就用最近收盤價。
+- 每人每日資產快照（走勢圖）由排程補齊；缺報價的部位以成本計入。修改過去的交易、價格或匯率會刪掉之後的快照，下次排程重算。
+- 基金淨值自動抓取還沒做：境外基金資訊觀測站等網站需另外實測（開發環境無法連線），目前先手動輸入。
 
 ### 計算方式（`shared/src/portfolio.ts`）
 

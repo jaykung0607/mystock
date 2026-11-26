@@ -8,6 +8,18 @@ import { requireAdmin } from '../middleware/auth';
 
 const app = new Hono<AppEnv>();
 
+const DEFAULT_SOURCE: Record<string, string> = {
+  tw_stock: 'tw',
+  us_stock: 'yahoo',
+  tw_fund: 'manual',
+  offshore_fund: 'manual',
+};
+
+/** 台股是依日期批次抓；新增／變更台股標的後清掉抓取紀錄，讓新標的的歷史價格補抓進來。 */
+async function resetTwFetchLog(db: D1Database) {
+  await db.prepare("DELETE FROM fetch_log WHERE source = 'tw'").run();
+}
+
 // 所有登入者可查（小孩加關注清單要用）
 app.get('/', validate('query', z.object({ q: z.string().trim().max(50).optional() })), async (c) => {
   const { q } = c.req.valid('query');
@@ -35,8 +47,17 @@ app.post('/', requireAdmin, validate('json', instrumentCreate), async (c) => {
       `INSERT INTO instruments (type, symbol, name, currency, share_class, data_source, source_key)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING *`,
     )
-      .bind(b.type, b.symbol, b.name, b.currency, b.share_class, b.data_source, b.source_key ?? b.symbol)
+      .bind(
+        b.type,
+        b.symbol,
+        b.name,
+        b.currency,
+        b.share_class,
+        b.data_source ?? DEFAULT_SOURCE[b.type],
+        b.source_key ?? b.symbol,
+      )
       .first<Instrument>();
+    if (row?.data_source === 'tw') await resetTwFetchLog(c.env.DB);
     return c.json({ instrument: row }, 201);
   } catch (err) {
     if (isUniqueError(err)) conflict('已有相同類型、代號與級別的標的');
@@ -56,6 +77,7 @@ app.patch('/:id', requireAdmin, validate('json', instrumentUpdate), async (c) =>
       .bind(parseId(c.req.param('id')), b.name ?? null, b.share_class ?? null, b.data_source ?? null, b.source_key ?? null)
       .first<Instrument>();
     if (!row) notFound('找不到此標的');
+    if (row.data_source === 'tw' && (b.data_source || b.source_key)) await resetTwFetchLog(c.env.DB);
     return c.json({ instrument: row });
   } catch (err) {
     if (isUniqueError(err)) conflict('已有相同類型、代號與級別的標的');

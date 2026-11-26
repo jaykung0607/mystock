@@ -28,13 +28,18 @@ export const accountUpdate = z
   })
   .partial();
 
+/** 抓價來源：tw＝台股上市櫃收盤、yahoo／finnhub＝美股、manual＝手動輸入（基金淨值） */
+export const DATA_SOURCES = ['tw', 'yahoo', 'finnhub', 'manual'] as const;
+const dataSource = z.enum(DATA_SOURCES);
+
 export const instrumentCreate = z.object({
   type: z.enum(INSTRUMENT_TYPES),
   symbol: z.string().trim().min(1).max(50),
   name: z.string().trim().min(1).max(200),
   currency,
   share_class: z.string().trim().max(100).default(''),
-  data_source: z.string().trim().min(1).max(50).default('manual'),
+  /** 省略時依類型：tw_stock→tw、us_stock→yahoo、基金→manual */
+  data_source: dataSource.optional(),
   source_key: z.string().trim().max(200).optional(),
 });
 
@@ -42,7 +47,7 @@ export const instrumentUpdate = z
   .object({
     name: z.string().trim().min(1).max(200),
     share_class: z.string().trim().max(100),
-    data_source: z.string().trim().min(1).max(50),
+    data_source: dataSource,
     source_key: z.string().trim().max(200),
   })
   .partial();

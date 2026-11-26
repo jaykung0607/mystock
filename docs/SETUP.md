@@ -82,7 +82,36 @@ npm run deploy
 > Worker 本身也會驗證 JWT，所以沒經過 Access 的請求一律 401。
 > 另外記得到 Worker 的 **Settings → Domains & Routes** 關掉不用的 Preview URLs，避免多一個入口。
 
-## 5. 驗證
+## 5. 報價排程與 API key
+
+排程（Cron Triggers）寫在 `worker/wrangler.jsonc`，部署時自動生效，不需要到 dashboard 設定。
+可在 Worker 的 **Settings → Triggers** 確認有 4 個 cron。
+
+（選配）美股改用 Finnhub：到 <https://finnhub.io> 註冊免費 API key，然後：
+
+```bash
+cd worker && npx wrangler secret put FINNHUB_API_KEY
+```
+
+再把美股標的的 `data_source` 改成 `finnhub`。預設的 `yahoo` 不需要 key。
+
+### 第一次回補歷史價格
+
+輸入完期初交易後，用瀏覽器登入狀態打開開發者工具 Console 執行（或等排程自動慢慢補，每次 10 個交易日）：
+
+```js
+await (await fetch('/api/jobs/daily', { method: 'POST' })).json()
+```
+
+回傳的 `report.errors` 會列出抓不到的資料。重複執行直到 `report.tw.remaining` 為 0。
+
+### 已知風險（請部署後回報給 Claude）
+
+- **台銀匯率**：開發環境抓台銀時收到機器人驗證頁。如果正式環境也一樣，`report.errors` 會出現「匯率：…HTML…」，
+  這時先用 `PUT /api/fx/USD/2026-11-26`（body `{"rate":"32.1"}`）手動輸入，再請 Claude 換資料源。
+- **Yahoo / 台股盤中**：同樣無法在開發環境實測；失敗時盤中顯示最近收盤價，不影響帳本。
+
+## 6. 驗證
 
 1. 用手機瀏覽器打開網址 → 輸入 email → 收驗證碼登入。
 2. 頁面應顯示「嗨，Jay（管理者）」。

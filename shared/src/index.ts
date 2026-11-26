@@ -157,7 +157,10 @@ export interface PortfolioPosition {
   instrument: Pick<Instrument, 'id' | 'type' | 'symbol' | 'name' | 'currency' | 'share_class'>;
   state: import('./portfolio').PositionState | null;
   valuation: import('./portfolio').Valuation | null;
-  price: { close: DecimalString; date: DateString } | null;
+  /** 評價用的價格。intraday=true 為盤中延遲報價（time 為報價時間 ISO）。 */
+  price: { close: DecimalString; date: DateString; intraday?: boolean; time?: TimestampString } | null;
+  /** 收盤價超過 3 個交易日沒更新（例：基金淨值抓不到） */
+  price_stale: boolean;
   fx: { rate: DecimalString; date: DateString } | null;
   /** 計算錯誤（資料不一致，例如賣超過持有） */
   error?: string;
@@ -167,6 +170,13 @@ export interface PortfolioResponse {
   user_id: number;
   positions: PortfolioPosition[];
   summary: import('./portfolio').PortfolioSummary;
+}
+
+/** GET /api/portfolio/history：資產走勢 */
+export interface PortfolioHistoryResponse {
+  /** 省略 = 全家合計 */
+  user_id: number | null;
+  points: { date: DateString; market_value_twd: DecimalString; cost_twd: DecimalString }[];
 }
 
 export interface FamilyPortfolioResponse {

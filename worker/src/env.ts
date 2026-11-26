@@ -11,6 +11,8 @@ export interface Env {
   ACCESS_AUD: string;
   /** 本機開發模擬登入的 email（只在 ENVIRONMENT=development 生效） */
   DEV_AUTH_EMAIL?: string;
+  /** Finnhub API key（wrangler secret；只有 data_source='finnhub' 的標的需要） */
+  FINNHUB_API_KEY?: string;
 }
 
 /** 已登入並對應到 users 表的身分。 */
@@ -25,5 +27,10 @@ export type AppEnv = {
   Bindings: Env;
   Variables: {
     user: AuthUser;
+    /** 對外請求（測試時替換） */
+    fetch: typeof fetch;
+    /** 目前時間（測試時固定） */
+    now: () => Date;
+    twDelayMs: number | undefined;
   };
 };

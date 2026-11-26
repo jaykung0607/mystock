@@ -27,6 +27,13 @@ export function validate<T extends ZodType, Target extends keyof ValidationTarge
   });
 }
 
+/** 驗證路徑參數；失敗回 400。 */
+export function parseParam<T>(schema: ZodType<T>, value: string, name: string): T {
+  const r = schema.safeParse(value);
+  if (!r.success) badRequest(`${name} 格式錯誤：${r.error.issues[0]?.message ?? ''}`);
+  return r.data;
+}
+
 export function parseId(raw: string): number {
   const id = Number(raw);
   if (!Number.isSafeInteger(id) || id <= 0) badRequest('id 格式錯誤');

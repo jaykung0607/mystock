@@ -11,8 +11,8 @@ let kid2: Client;
 async function seed() {
   const tw = (await admin.post('/accounts', { user_id: 2, name: '老大證券戶', broker: '元大', currency: 'TWD' })).body.account;
   const us = (await admin.post('/accounts', { user_id: 2, name: '老大複委託', currency: 'USD' })).body.account;
-  const tsmc = (await admin.post('/instruments', { type: 'tw_stock', symbol: '2330', name: '台積電', currency: 'TWD', data_source: 'twse' })).body.instrument;
-  const etf = (await admin.post('/instruments', { type: 'tw_stock', symbol: '006208', name: '富邦台50', currency: 'TWD', data_source: 'twse' })).body.instrument;
+  const tsmc = (await admin.post('/instruments', { type: 'tw_stock', symbol: '2330', name: '台積電', currency: 'TWD' })).body.instrument;
+  const etf = (await admin.post('/instruments', { type: 'tw_stock', symbol: '006208', name: '富邦台50', currency: 'TWD' })).body.instrument;
   const aapl = (await admin.post('/instruments', { type: 'us_stock', symbol: 'AAPL', name: 'Apple', currency: 'USD', data_source: 'finnhub' })).body.instrument;
   return { tw, us, tsmc, etf, aapl };
 }

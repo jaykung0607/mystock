@@ -30,6 +30,7 @@ export async function resetDb() {
     env.DB.prepare('DELETE FROM accounts'),
     env.DB.prepare('DELETE FROM instruments'),
     env.DB.prepare('DELETE FROM users'),
+    env.DB.prepare('DELETE FROM fetch_log'),
     env.DB.prepare("UPDATE settings SET value = '1' WHERE key = 'tw_fee_discount'"),
     env.DB.prepare(
       `INSERT INTO users (id, email, display_name, role) VALUES
@@ -38,7 +39,7 @@ export async function resetDb() {
   ]);
 }
 
-export async function client(email: string) {
+export async function client(email: string, opts: { fetch?: typeof fetch; now?: () => Date; twDelayMs?: number } = {}) {
   const { privateKey, jwk } = await keys();
   const token = await new SignJWT({ email })
     .setProtectedHeader({ alg: 'RS256', kid: 'k1' })
@@ -48,7 +49,7 @@ export async function client(email: string) {
     .setExpirationTime('1h')
     .sign(privateKey);
   const jwks = createLocalJWKSet({ keys: [jwk] });
-  const app = createApp({ resolveJwks: () => jwks });
+  const app = createApp({ resolveJwks: () => jwks, twDelayMs: 0, ...opts });
 
   async function call<T = any>(method: string, path: string, body?: unknown) {
     const res = await app.request(
