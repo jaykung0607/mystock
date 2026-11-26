@@ -1,0 +1,23 @@
+:root {
+  /* 一律紅漲綠跌（SPEC §2） */
+  --color-up: #d32f2f;
+  --color-down: #2e7d32;
+  --color-flat: #616161;
+  font-family: system-ui, -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
+.flat { color: var(--color-flat); }
+.error { color: var(--color-up); }

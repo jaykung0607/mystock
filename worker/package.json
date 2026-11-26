@@ -1,0 +1,30 @@
+{
+  "name": "@mystock/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:migrate:local": "wrangler d1 migrations apply mystock --local",
+    "db:migrate:remote": "wrangler d1 migrations apply mystock --remote",
+    "db:seed:local": "wrangler d1 execute mystock --local --file=scripts/seed.dev.sql"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.1",
+    "@mystock/shared": "*",
+    "hono": "^4.13.22",
+    "jose": "^6.2.18",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.9.2",
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2",
+    "wrangler": "^4.168.0"
+  }
+}
