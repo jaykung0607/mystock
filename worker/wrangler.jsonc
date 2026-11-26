@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mystock",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // 前端靜態檔（web/ build 輸出）。/api/* 先交給 Worker，其餘走靜態檔、SPA fallback。
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mystock",
+      // 執行 `wrangler d1 create mystock` 後把 id 填在這裡（見 docs/SETUP.md）
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // 非機密設定。ACCESS_TEAM_DOMAIN / ACCESS_AUD 見 docs/SETUP.md。
+  // 本機開發用 .dev.vars 覆寫（ENVIRONMENT=development、DEV_AUTH_EMAIL）。
+  "vars": {
+    "ENVIRONMENT": "production",
+    "ACCESS_TEAM_DOMAIN": "https://YOUR-TEAM.cloudflareaccess.com",
+    "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD_TAG"
+  },
+
+  "observability": { "enabled": true }
+}

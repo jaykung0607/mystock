@@ -1,0 +1,4 @@
+# 複製成 .dev.vars（已 gitignore）。只給 `wrangler dev` 本機使用。
+ENVIRONMENT=development
+# 本機模擬登入的 email，需存在於 users 表（見 scripts/seed.dev.sql）
+DEV_AUTH_EMAIL=admin@example.com
